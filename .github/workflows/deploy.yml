@@ -36,12 +36,28 @@ jobs:
       - name: Build Angular (prod) con base-href per GitHub Pages
         run: |
           npm run build -- --configuration production --base-href /hello-devops-angular/
-          cp dist/hello/index.html dist/hello/404.html
+
+      - name: Trova cartella di output (dist)
+        id: loc
+        run: |
+          if [ -f dist/hello/index.html ]; then
+            echo "out=dist/hello" >> $GITHUB_OUTPUT
+          elif [ -f dist/hello/browser/index.html ]; then
+            echo "out=dist/hello/browser" >> $GITHUB_OUTPUT
+          else
+            echo "index.html non trovato in dist/hello o dist/hello/browser"
+            echo "Contenuto dist:"
+            ls -R dist || true
+            exit 1
+          fi
+
+      - name: Aggiungi 404.html (SPA fallback)
+        run: cp "${{ steps.loc.outputs.out }}/index.html" "${{ steps.loc.outputs.out }}/404.html"
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist/hello
+          path: ${{ steps.loc.outputs.out }}
 
   deploy:
     needs: build
